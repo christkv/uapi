@@ -10,6 +10,12 @@
     "type": "git",
     "url": "git://github.com/christkv/uapi.git"
   },
+  "dependencies": {
+    "uglify-js": "2.2.5"
+  },
+  "devDependencies": {
+    "nodeunit": "0.7.4"
+  },
   "keywords": [
     "uapi",
     "api",
