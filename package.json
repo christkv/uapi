@@ -1,0 +1,22 @@
+{
+  "name": "uapi",
+  "version": "0.0.1",
+  "description": "Universal API, Publish your API, make validation universal and handle all without reinventing the wheel",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/christkv/uapi.git"
+  },
+  "keywords": [
+    "uapi",
+    "api",
+    "webservice"
+  ],
+  "author": "Christian Amor Kvalheim",
+  "license": "Apache 2.0",
+  "readmeFilename": "README.md",
+  "gitHead": "77da5e60e3d1a8ec1c2676a760f7e1ffd8b62b0f"
+}
