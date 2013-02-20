@@ -151,15 +151,15 @@ exports.shouldCorrectlyHandleObjectValidations = function(test) {
     .object('param1', function() {
       this.number('age', { lt: 100, gt:5 });
       this.string('email', {in: ["user@user.com"]});
-      this.string('address.street', {regexp: /^us/});
+      this.string('address.street.city', {regexp: /^us/});
     })
     .interpreted(this, function(param1) {
       return "called" + param1;
     });
 
-  test.equal("age value of 120 is greater than 100", func({age:120, name:'test', email:"test@in.com", address:{street:"aus road"}})[0].err.message);
-  test.equal("email 'test@in.com' not found in [ 'user@user.com' ]", func({age:120, name:'test', email:"test@in.com", address:{street:"aus road"}})[1].err.message);
-  test.equal("address.street value of 'aus road' did not match regexp /^us/", func({age:120, name:'test', email:"test@in.com", address:{street:"aus road"}})[2].err.message);
+  test.equal("param1.age value of 120 is greater than 100", func({age:120, name:'test', email:"test@in.com", address:{street:"aus road"}})[0].err.message);
+  test.equal("param1.email 'test@in.com' not found in [ 'user@user.com' ]", func({age:120, name:'test', email:"test@in.com", address:{street:"aus road"}})[1].err.message);
+  test.equal("param1.address.street.city value of 'aus road' did not match regexp /^us/", func({age:120, name:'test', email:"test@in.com", address:{street: {city: "aus road"}}})[2].err.message);
   test.done();
 }
 
@@ -187,12 +187,12 @@ exports.shouldCorrectlyHandleNestedObjectValidations = function(test) {
 
   var results = func({price:{currency:'NOK', amount:-1}, location: {city: {}}});
   test.equal(6, results.length);
-  test.equal("no object member age", results[0].err.message);
-  test.equal("no object member email", results[1].err.message);
-  test.equal("no object member address.street", results[2].err.message);
-  test.equal("price.currency 'NOK' not found in [ 'USD', 'EUR' ]", results[3].err.message);
-  test.equal("no object member location.city.street", results[5].err.message);
-  test.equal("price.amount value of -1 is less than 0", results[4].err.message);
+  test.equal("no object member param1.age", results[0].err.message);
+  test.equal("no object member param1.email", results[1].err.message);
+  test.equal("no object member param1.address.street", results[2].err.message);
+  test.equal("param1.price.currency 'NOK' not found in [ 'USD', 'EUR' ]", results[3].err.message);
+  test.equal("no object member param1.location.city.street", results[5].err.message);
+  test.equal("param1.price.amount value of -1 is less than 0", results[4].err.message);
   test.done();
 }
 
@@ -235,7 +235,7 @@ exports.shouldCorrectlyPerformCustomValidation = function(test) {
   var results = func({person:{email:'dome@dome.com'}});
   test.equal(1, results.length);
   test.equal("only emails from gmail allowed", results[0].err.message);
-  test.equal("person.email", results[0].name);
+  test.equal("param1.person.email", results[0].name);
   test.done();
 }
 
@@ -259,10 +259,73 @@ exports.shouldCorrectlyFailOnFirstError = function(test) {
 
   var results = func({price:{currency:'NOK', amount:-1}});
   test.equal(1, results.length);
-  test.equal("no object member name", results[0].err.message);
+  test.equal("no object member param1.name", results[0].err.message);
   test.done();
 }
 
+exports.shouldCorrectlyAsyncCustomFunctions = function(test) {
+  // Custom email validator function, returns an array of Error objects
+  var customerEmailValidator = function(name, value, callback) {
+    var errors = [];
+    
+    if(value == null) errors.push(new Error("value should not be null"));
+    if(typeof value != 'string') errors.push(new Error("value must be a string"));
+    if(value && typeof value == 'string' && value.indexOf("gmail") -1) errors.push(new Error("only emails from gmail allowed"));
+
+    // perform callback in next event loop tick
+    process.nextTick(function() {
+      callback(errors, null);
+    })
+  }
+
+  // Simple object validator, uses the same rules as above
+  var func = Validator2
+    .callback("email", customerEmailValidator)
+    .interpreted(this, function(email, callback) {
+      return "called" + param1;
+    });
+
+  func("ole@yahoo.com", function(err, result) {
+    test.equal(1, err.length);
+    test.equal("only emails from gmail allowed", err[0].message);
+    test.done();
+  });
+}
+
+exports.shouldCorrectlyAsyncCustomFunctionsOnObject = function(test) {
+  // Custom email validator function, returns an array of Error objects
+  var customerEmailValidator = function(name, value, callback) {
+    var errors = [];
+    
+    if(value == null) errors.push(new Error("value should not be null"));
+    if(typeof value != 'string') errors.push(new Error("value must be a string"));
+    if(value && typeof value == 'string' && value.indexOf("gmail") -1) errors.push(new Error("only emails from gmail allowed"));
+
+    // perform callback in next event loop tick
+    process.nextTick(function() {
+      callback(errors, null);
+    })
+  }
+
+  // Simple object validator, uses the same rules as above
+  var func = Validator2
+    .object("email", function() {
+      this.object('customer', function() {
+        this.object('home', function() {
+          this.callback("email", customerEmailValidator)
+        });
+      });
+    })
+    .interpreted(this, function(email, callback) {
+      return "called" + param1;
+    });
+
+  func({customer: {home: {email: "ole@yahoo.com"}}}, function(err, result) {
+    test.equal(1, err.length);
+    test.equal("only emails from gmail allowed", err[0].message);
+    test.done();
+  });
+}
 
 
 
